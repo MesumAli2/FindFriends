@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "946144146574",
+    "project_id": "friendsfind-aca1d",
+    "storage_bucket": "friendsfind-aca1d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:946144146574:android:3898fdc6adc6309784c5df",
+        "android_client_info": {
+          "package_name": "com.mesum.findfriends"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "946144146574-134618v3v1jor03mqgsjl891utarivtk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEq_aktggSCmQTjwpR8jx-1tlGYNZwMNs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "946144146574-134618v3v1jor03mqgsjl891utarivtk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

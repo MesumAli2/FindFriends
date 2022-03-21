@@ -108,11 +108,12 @@ class RegisterFragment : Fragment() {
     fun registerNewEmail(name: String, email: String, password: String?) {
         val db = Firebase.firestore
         // Create a new user with a first and last name
-        val user = hashMapOf(
+     /*   val user = hashMapOf(
             "name" to name,
             "email" to email,
             "password" to password
-        )
+        )*/
+        val user = User(email, name, password!!)
 
 // Add a new document with a generated ID
         db.collection("users")

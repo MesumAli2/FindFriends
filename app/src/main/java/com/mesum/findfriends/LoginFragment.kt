@@ -1,30 +1,21 @@
 package com.mesum.findfriends
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
-import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
-import com.firebase.ui.auth.AuthUI
-import com.google.android.gms.auth.api.Auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import com.mesum.findfriends.RegisterFragment.Companion.TAG
 import com.mesum.findfriends.databinding.FragmentLoginBinding
 
-
 class LoginFragment : Fragment() {
-    companion object {
-        const val TAG = "LoginFragment"
-        const val SIGN_IN_RESULT_CODE = 1001
-    }
+
     private var _binding : FragmentLoginBinding? = null
     private val binding get() = _binding!!
-
-  private val viewModel by viewModels<LoginViewModel>()
-    private lateinit var navController: NavController
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -37,31 +28,32 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        binding.emailSignInButton.setOnClickListener {
+            loginUsre(binding.email.text.toString(), binding.password.text.toString())
+        }
+        binding.linkRegister.setOnClickListener {
+            findNavController().navigate(R.id.registerFragment)
+        }
 
+    }
 
-        binding.authButton.setOnClickListener { launchSignInFlow() }
-        viewModel.authenticationState.observe(viewLifecycleOwner, Observer { state ->
-            when(state){
-                LoginViewModel.AuthenticationState.AUTHENTICATED-> Toast.makeText(
-                    activity,
-                    "Welcome You have Successfully lodged in",
-                    Toast.LENGTH_SHORT
-                ).show()
+    private fun loginUsre(email: String, password: String) {
+        val db = Firebase.firestore
+        db.collection("users")
+            .get()
+            .addOnSuccessListener { result ->
+                for (document in result) {
+                  if((document.data["email"] == email ) && (document.data["password"] == password)){
+                      findNavController().navigate(R.id.location)
+                      Log.d(TAG, "${document.data["email"]}")
+
+                  }
+
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.w(TAG, "Error getting documents.", exception)
             }
 
-        })
     }
-
-    private fun launchSignInFlow(){
-        val providers = arrayListOf(
-            AuthUI.IdpConfig.EmailBuilder().build(), AuthUI.IdpConfig.GoogleBuilder().build()
-        )
-        startActivityForResult(
-            AuthUI.getInstance().createSignInIntentBuilder().setAvailableProviders(
-                providers
-            ).build(), SIGN_IN_RESULT_CODE
-        )
-    }
-
-
 }

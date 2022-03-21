@@ -16,6 +16,7 @@ class LoginViewModel : ViewModel() {
         }
         else{
             AuthenticationState.UNAUTHENTICATED
+
         }
     }
 }

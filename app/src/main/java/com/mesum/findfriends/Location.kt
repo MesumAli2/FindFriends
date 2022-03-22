@@ -1,8 +1,4 @@
 
-
-
-
-
 package com.mesum.findfriends
 
 import android.Manifest
@@ -44,6 +40,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Transformations.map
 import com.google.android.gms.location.LocationServices
 import com.google.common.io.Files.map
+import com.google.firebase.firestore.ktx.firestore
 
 
 private const val LOCATION_PERMISSION_REQUEST = 1
@@ -59,7 +56,6 @@ class Location : Fragment() {
     private lateinit var mUserLocationClint : FusedLocationProviderClient
     private var mFusedLocationClient: FusedLocationProviderClient? = null
 
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -67,7 +63,6 @@ class Location : Fragment() {
          // Inflate the layout for this fragment
         _binding = FragmentLocationBinding.inflate(inflater, container, false)
         return binding.root
-
     }
 
     //step 3
@@ -83,76 +78,42 @@ class Location : Fragment() {
                     Log.d(TAG, "${mUserLocation.geo_point!!.longitude}")
                 }
             }
-
-
         }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        //Current user location client
         mUserLocationClint = FusedLocationProviderClient(requireContext())
 
-        if (ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
+        //If permission are not granted request permission
+        if (ActivityCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(requireContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
                 ActivityCompat.requestPermissions(activity as AppCompatActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 10 )
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+
         }
 
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        /*val mapFragment = childFragmentManager
-            .findFragmentById(R.id.map) as SupportMapFragment
-        mapFragment.getMapAsync { OnMapReadyCallback {
-            mMap = it
-
-            // Add a marker in Sydney and move the camera
-            val sydney = LatLng(-34.0, 151.0)
-            mMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
-*/
+        //Location client provided to this class
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient( activity as AppCompatActivity);
+        //Current user data class
         mUserLocation = UserLocation()
-        mDB = FirebaseFirestore.getInstance()
+        //Initialize fireStore database
+        mDB = Firebase.firestore
 
+         val firebaseAuth = FirebaseAuth.getInstance()
+       binding.currentuser.text = firebaseAuth.currentUser.toString()
         getUserDetails()
 
         }
 
-
-
-
-
-
     //Step 2
     private fun getLAstKnownLocation(){
         if (ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
+                requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(activity as AppCompatActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 10 )
-
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
         }
         mFusedLocationClient?.lastLocation?.addOnCompleteListener(OnCompleteListener<Location?> { task ->
             if (task.isSuccessful) {
@@ -163,22 +124,23 @@ class Location : Fragment() {
                 savedUserLocation()
             }
         })
-        }
+    }
 
 
     //step 1
-    private fun getUserDetails() {
-            val userRef: DocumentReference = mDB.collection("users").document(FirebaseAuth.getInstance().uid!!)
+     fun getUserDetails() {
+            mUserLocation = UserLocation()
+            val userRef: DocumentReference = mDB.collection("user")
+                .document(FirebaseAuth.getInstance().uid!!)
             userRef.get().addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     Log.d(TAG, "onComplete: successfully set the user client.")
-                   // val user: User? = task.result.toObject(User::class.java)
-                    val user = task.result
-                    mUserLocation.user = user.toObject(User::class.java)
+                    val user: User = task.result.toObject(User::class.java)!!
+                    mUserLocation.user = user
                     getLAstKnownLocation()
                 }
+            }
 
-        }
     }
 
 

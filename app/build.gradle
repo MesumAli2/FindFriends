@@ -2,7 +2,11 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'com.google.gms.google-services'
+
+
 }
+
+
 
 android {
     compileSdk 31
@@ -74,6 +78,9 @@ dependencies {
     implementation 'androidx.navigation:navigation-fragment-ktx:2.4.1'
     implementation "androidx.navigation:navigation-ui-ktx:2.4.1"
     implementation 'androidx.preference:preference-ktx:1.2.0'
+
+    implementation "androidx.navigation:navigation-fragment-ktx:2.4.1"
+    implementation "androidx.navigation:navigation-ui-ktx:2.4.1"
 
 
 }

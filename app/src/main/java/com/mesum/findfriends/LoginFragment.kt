@@ -51,7 +51,7 @@ class LoginFragment : Fragment() {
 
 
 
-   /* private fun setupFirebaseAuth() {
+  /*  private fun setupFirebaseAuth() {
         Log.d(TAG, "setupFirebaseAuth: started.")
         mAuthListener = AuthStateListener { firebaseAuth ->
             val user = firebaseAuth.currentUser
@@ -85,8 +85,8 @@ class LoginFragment : Fragment() {
             }
             // ...
         }
-    }
-*/
+    }*/
+
 
     private fun signIn() {
         //check if the fields are filled out

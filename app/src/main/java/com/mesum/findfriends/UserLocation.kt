@@ -5,7 +5,7 @@ import com.google.firebase.firestore.ServerTimestamp
 import java.util.*
 
 
-class UserLocation {
+class UserLocation  {
      var user: User? = null
      var geo_point: GeoPoint? = null
 

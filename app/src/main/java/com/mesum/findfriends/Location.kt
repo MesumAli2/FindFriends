@@ -29,6 +29,32 @@ import androidx.fragment.app.activityViewModels
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.firestore.*
 import com.google.firebase.firestore.ktx.firestore
+import android.app.ActivityManager
+
+import android.content.Context.ACTIVITY_SERVICE
+
+import androidx.core.content.ContextCompat.getSystemService
+
+import com.mesum.findfriends.services.LocationService
+
+import android.content.Intent
+import android.os.Build
+import androidx.core.content.ContextCompat
+import android.app.Service
+import android.os.Handler
+import com.google.firebase.firestore.EventListener
+import java.util.*
+import com.google.firebase.firestore.DocumentSnapshot
+
+import androidx.annotation.NonNull
+
+import com.google.firebase.firestore.FirebaseFirestore
+
+import com.google.firebase.firestore.DocumentReference
+import java.lang.IllegalStateException
+import java.lang.NullPointerException
+import java.sql.Timestamp
+
 
 class Location : Fragment() {
     private lateinit var mMap: GoogleMap
@@ -41,7 +67,9 @@ class Location : Fragment() {
     private val userlocationlist = mutableListOf<User>()
     private val mapuserlocation = mutableListOf<UserLocation>()
     private val viewModel by activityViewModels<LocationViewModel>()
-
+    private val locationUpdateInterval = 3000;
+    private val mHandler = Handler()
+    private  var mRunnable = Runnable {  }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -60,8 +88,8 @@ class Location : Fragment() {
         //If permission are not granted request permission
         if (ActivityCompat.checkSelfPermission(requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(requireContext(),
-                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(activity as AppCompatActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 10 )
+                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(requireContext(), Manifest.permission.FOREGROUND_SERVICE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(activity as AppCompatActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.FOREGROUND_SERVICE), 10 )
         }
         //Location client provided to this class
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient( activity as AppCompatActivity);
@@ -76,8 +104,9 @@ class Location : Fragment() {
 
         //Observe live data with users location
         viewModel.getResponseUserLocationFlow().observe(this, {
+            mapuserlocation.addAll(it)
             //Add theses location to the map
-            val mapFragment = childFragmentManager
+          /*  val mapFragment = childFragmentManager
                 .findFragmentByTag(getString(R.string.no)) as SupportMapFragment
             mapFragment.getMapAsync(object  : OnMapReadyCallback{
                 override fun onMapReady(p0: GoogleMap) {
@@ -86,13 +115,97 @@ class Location : Fragment() {
                         // Add a marker in dubai and move the camera
                         val userlc = LatLng(i.geo_point?.latitude!!, i.geo_point?.longitude!!)
                         val zoomLevel = 18f
-                        mMap.addMarker(MarkerOptions().position(userlc).title(i.user?.username))
+                        mMap.addMarker(MarkerOptions().position(userlc).title(i.timestamp.toString()))
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userlc, zoomLevel))
                     }
                 }
-            })
+            }) */
+
         })
+
+        getallUser()
     }
+
+
+    private fun startUserLocationsRunnable() {
+        Log.d(
+            TAG,
+            "startUserLocationsRunnable: starting runnable for retrieving updated locations."
+        )
+         mRunnable = object : Runnable{
+             override fun run() {
+                 retrieveUserLocations()
+                 mHandler.postDelayed(mRunnable,locationUpdateInterval.toLong() )
+             }
+         }
+        mHandler.postDelayed( mRunnable,  locationUpdateInterval.toLong())
+
+    }
+
+    private fun retrieveUserLocations() {
+        Log.d(TAG, "retrieveUserLocations: retrieving location of all users in the chatroom.")
+        try {
+            for (clusterMarker in mapuserlocation) {
+                val userLocationRef = Firebase.firestore
+                    .collection("usersLocation")
+                    .document(clusterMarker.user?.user_id!!)
+                userLocationRef.get().addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val updatedUserLocation: UserLocation = task.result.toObject(
+                            UserLocation::class.java
+                        )!!
+
+                        // update the location
+                        for (i in 0 until mapuserlocation.size) {
+                            try {
+                                if (mapuserlocation.get(i).user?.user_id.equals(
+                                        updatedUserLocation.user!!.user_id
+                                    )
+                                ) {
+                                    val updatedLatLng = GeoPoint(
+                                        updatedUserLocation.geo_point!!.latitude,
+                                        updatedUserLocation.geo_point!!.longitude
+                                    )
+                                    val updatTimestamp = Timestamp(
+                                    updatedUserLocation.timestamp!!.time
+                                    )
+
+                                    mapuserlocation.get(i).geo_point = updatedLatLng
+                                    mapuserlocation.get(i).timestamp = updatTimestamp
+                                    //mClusterManagerRenderer.setUpdateMarker(mClusterMarkers.get(i))
+                                    val mapFragment = childFragmentManager
+                                        .findFragmentByTag(getString(R.string.no)) as SupportMapFragment
+                                    mapFragment.getMapAsync(object  : OnMapReadyCallback{
+                                        override fun onMapReady(p0: GoogleMap) {
+                                            mMap = p0
+                                            for (i in mapuserlocation){
+                                                // Add a marker in dubai and move the camera
+                                                val userlc = LatLng(i.geo_point?.latitude!!, i.geo_point?.longitude!!)
+                                                val zoomLevel = 18f
+                                                mMap.addMarker(MarkerOptions().position(userlc).title(i.timestamp.toString()))
+                                                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userlc, zoomLevel))
+                                            }
+                                        }
+                                    })
+                                }
+                            } catch (e: NullPointerException) {
+                                Log.e(
+                                    TAG,
+                                    "retrieveUserLocations: NullPointerException: " + e.message
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: IllegalStateException) {
+            Log.e(
+                TAG,
+                "retrieveUserLocations: Fragment was destroyed during Firestore query. Ending query." + e.message
+            )
+        }
+    }
+
 
     //step 1
     fun getUserDetails() {
@@ -123,6 +236,7 @@ class Location : Fragment() {
                 mUserLocation.geo_point = geoPoint
                 mUserLocation.timestamp = null
                 savedUserLocation()
+                startLocationService()
             }
         })
     }
@@ -188,6 +302,31 @@ class Location : Fragment() {
 
     }
 
+
+    private fun startLocationService() {
+        if (!isLocationServiceRunning()) {
+            val serviceIntent = Intent(activity as AppCompatActivity, LocationService::class.java)
+            //        this.startService(serviceIntent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context?.startForegroundService(serviceIntent)
+            } else {
+
+                activity?.startService(serviceIntent)
+            }
+        }
+    }
+
+    private fun isLocationServiceRunning(): Boolean {
+        val manager = activity?.getSystemService(ACTIVITY_SERVICE) as ActivityManager?
+        for (service in manager!!.getRunningServices(Int.MAX_VALUE)) {
+            if ("com.codingwithmitch.googledirectionstest.services.LocationService" == service.service.className) {
+                Log.d(TAG, "isLocationServiceRunning: location service is already running.")
+                return true
+            }
+        }
+        Log.d(TAG, "isLocationServiceRunning: location service is not running.")
+        return false
+    }
 
 
 }

@@ -39,14 +39,17 @@ import com.google.android.gms.location.FusedLocationProviderClient
 
 class LocationService : Service() {
     private var mFusedLocationClient: FusedLocationProviderClient? = null
+
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
 
     override fun onCreate() {
         super.onCreate()
+        //gets the location of the user
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         if (Build.VERSION.SDK_INT >= 26) {
+            //starts background notification for api level 26 above
             val CHANNEL_ID = "my_channel_01"
             val channel = NotificationChannel(
                 CHANNEL_ID,
@@ -61,8 +64,9 @@ class LocationService : Service() {
                 .setContentText("").build()
             startForeground(1, notification)
         }
-    }
 
+    }
+    //Runs when the startservice command is called from the Locationservice class
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand: called.")
         getLocation()

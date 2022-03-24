@@ -39,17 +39,9 @@ import com.mesum.findfriends.services.LocationService
 
 import android.content.Intent
 import android.os.Build
-import androidx.core.content.ContextCompat
-import android.app.Service
 import android.os.Handler
 import com.google.firebase.firestore.EventListener
-import java.util.*
-import com.google.firebase.firestore.DocumentSnapshot
-
-import androidx.annotation.NonNull
-
 import com.google.firebase.firestore.FirebaseFirestore
-
 import com.google.firebase.firestore.DocumentReference
 import java.lang.IllegalStateException
 import java.lang.NullPointerException
@@ -273,6 +265,7 @@ class Location : Fragment() {
                     }
                     if (queryDocumentSnapshots != null) {
 
+                        mapuserlocation.clear()
                         // Clear the list and add all the users again
                         for (doc in queryDocumentSnapshots) {
                             val user = doc.toObject(

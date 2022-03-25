@@ -2,6 +2,7 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id 'com.google.gms.google-services'
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
 
 
 }
@@ -86,9 +87,10 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.4.1"
 
     // Coroutines
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.5.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0'
 
 
+    implementation 'com.google.android.gms:play-services-maps:18.0.2'
 
 }

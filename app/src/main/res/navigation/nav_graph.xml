@@ -8,12 +8,12 @@
     <fragment
         android:id="@+id/location"
         android:name="com.mesum.findfriends.Location"
-        android:label="fragment_location"
+        android:label="Locate"
         tools:layout="@layout/fragment_location" />
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.mesum.findfriends.RegisterFragment"
-        android:label="RegisterFragment" >
+        android:label="Register" >
         <action
             android:id="@+id/action_registerFragment_to_location"
             app:destination="@id/location" />
@@ -21,7 +21,7 @@
     <fragment
         android:id="@+id/loginFragment"
         android:name="com.mesum.findfriends.LoginFragment"
-        android:label="LoginFragment" >
+        android:label="Sing In" >
         <action
             android:id="@+id/action_loginFragment_to_registerFragment"
             app:destination="@id/registerFragment" />

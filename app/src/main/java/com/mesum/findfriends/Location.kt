@@ -23,13 +23,13 @@ import com.google.firebase.ktx.Firebase
 import com.mesum.findfriends.RegisterFragment.Companion.TAG
 import com.mesum.findfriends.databinding.FragmentLocationBinding
 import com.google.android.gms.tasks.OnCompleteListener
-import android.R
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.activityViewModels
 import com.google.android.gms.location.LocationServices
 import com.google.firebase.firestore.*
 import com.google.firebase.firestore.ktx.firestore
 import android.app.ActivityManager
+import android.content.Context
 
 import android.content.Context.ACTIVITY_SERVICE
 
@@ -38,11 +38,20 @@ import androidx.core.content.ContextCompat.getSystemService
 import com.mesum.findfriends.services.LocationService
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Rect
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Handler
+import androidx.core.content.ContextCompat
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.firebase.firestore.EventListener
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.core.Bound
+import com.google.firebase.firestore.ktx.toObjects
 import java.lang.IllegalStateException
 import java.lang.NullPointerException
 import java.sql.Timestamp
@@ -57,7 +66,6 @@ class Location : Fragment() {
     private lateinit var mUserLocationClint : FusedLocationProviderClient
     private var mFusedLocationClient: FusedLocationProviderClient? = null
     private val userlocationlist = mutableListOf<User>()
-    private val mapuserlocation = mutableListOf<UserLocation>()
     private val viewModel by activityViewModels<LocationViewModel>()
     private val locationUpdateInterval = 3000;
     private val mHandler = Handler()
@@ -96,23 +104,6 @@ class Location : Fragment() {
 
         //Observe live data with users location
         viewModel.getResponseUserLocationFlow().observe(this, {
-            mapuserlocation.addAll(it)
-            //Add theses location to the map
-          /*  val mapFragment = childFragmentManager
-                .findFragmentByTag(getString(R.string.no)) as SupportMapFragment
-            mapFragment.getMapAsync(object  : OnMapReadyCallback{
-                override fun onMapReady(p0: GoogleMap) {
-                    mMap = p0
-                    for (i in it){
-                        // Add a marker in dubai and move the camera
-                        val userlc = LatLng(i.geo_point?.latitude!!, i.geo_point?.longitude!!)
-                        val zoomLevel = 18f
-                        mMap.addMarker(MarkerOptions().position(userlc).title(i.timestamp.toString()))
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userlc, zoomLevel))
-                    }
-                }
-            }) */
-
         })
 
         getallUser()
@@ -126,7 +117,7 @@ class Location : Fragment() {
         )
          mRunnable = object : Runnable{
              override fun run() {
-                 retrieveUserLocations()
+                // retrieveUserLocations()
                  mHandler.postDelayed(mRunnable,locationUpdateInterval.toLong() )
              }
          }
@@ -134,69 +125,7 @@ class Location : Fragment() {
 
     }
 
-    private fun retrieveUserLocations() {
-        Log.d(TAG, "retrieveUserLocations: retrieving location of all users in the chatroom.")
-        try {
-            for (clusterMarker in mapuserlocation) {
-                val userLocationRef = Firebase.firestore
-                    .collection("usersLocation")
-                    .document(clusterMarker.user?.user_id!!)
-                userLocationRef.get().addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        val updatedUserLocation: UserLocation = task.result.toObject(
-                            UserLocation::class.java
-                        )!!
 
-                        // update the location
-                        for (i in 0 until mapuserlocation.size) {
-                            try {
-                                if (mapuserlocation.get(i).user?.user_id.equals(
-                                        updatedUserLocation.user!!.user_id
-                                    )
-                                ) {
-                                    val updatedLatLng = GeoPoint(
-                                        updatedUserLocation.geo_point!!.latitude,
-                                        updatedUserLocation.geo_point!!.longitude
-                                    )
-                                    val updatTimestamp = Timestamp(
-                                    updatedUserLocation.timestamp!!.time
-                                    )
-
-                                    mapuserlocation.get(i).geo_point = updatedLatLng
-                                    mapuserlocation.get(i).timestamp = updatTimestamp
-                                    //mClusterManagerRenderer.setUpdateMarker(mClusterMarkers.get(i))
-                                    val mapFragment = childFragmentManager
-                                        .findFragmentByTag(getString(R.string.no)) as SupportMapFragment
-                                    mapFragment.getMapAsync(object  : OnMapReadyCallback{
-                                        override fun onMapReady(p0: GoogleMap) {
-                                            mMap = p0
-                                            for (i in mapuserlocation){
-                                                // Add a marker in dubai and move the camera
-                                                val userlc = LatLng(i.geo_point?.latitude!!, i.geo_point?.longitude!!)
-                                                val zoomLevel = 18f
-                                                mMap.addMarker(MarkerOptions().position(userlc).title(i.timestamp.toString()))
-                                                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userlc, zoomLevel))
-                                            }
-                                        }
-                                    })
-                                }
-                            } catch (e: NullPointerException) {
-                                Log.e(
-                                    TAG,
-                                    "retrieveUserLocations: NullPointerException: " + e.message
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (e: IllegalStateException) {
-            Log.e(
-                TAG,
-                "retrieveUserLocations: Fragment was destroyed during Firestore query. Ending query." + e.message
-            )
-        }
-    }
 
 
     //step 1
@@ -265,25 +194,32 @@ class Location : Fragment() {
                     }
                     if (queryDocumentSnapshots != null) {
 
-                        mapuserlocation.clear()
                         // Clear the list and add all the users again
                         for (doc in queryDocumentSnapshots) {
                             val user = doc.toObject(
                                 UserLocation::class.java
                             )
-                            mapuserlocation.add(user)
+
+
                         }
+                        val currentUser = FirebaseAuth.getInstance().currentUser?.email
+                            //gets the updated time for the current user
+                            queryDocumentSnapshots.toObjects(UserLocation::class.java).filter { it.user?.email.equals(currentUser) }.forEach { binding.usertime.text = it.timestamp.toString() }
+
                         val mapFragment = childFragmentManager
-                            .findFragmentByTag(getString(R.string.no)) as SupportMapFragment
+                            .findFragmentById(R.id.map) as SupportMapFragment
                         mapFragment.getMapAsync(object  : OnMapReadyCallback{
                             override fun onMapReady(p0: GoogleMap) {
                                 mMap = p0
-                                for (i in mapuserlocation){
-                                    val userlc = LatLng(i.geo_point?.latitude!!, i.geo_point?.longitude!!)
-                                    val zoomLevel = 18f
-                                    mMap.addMarker(MarkerOptions().position(userlc).title(i.user?.username))
+                                mMap.clear()
 
+                                for (i in queryDocumentSnapshots.toObjects(UserLocation::class.java)){
+                                    val userlc = LatLng(i.geo_point?.latitude!!, i.geo_point?.longitude!!)
+                                    val zoomLevel = 15f
+                                    mMap.addMarker(MarkerOptions().position(userlc).title(i.user?.username))
+                                        ?.setIcon(getCustomMarkerFromBitmap(R.drawable.peronsimage))
                                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userlc, zoomLevel))
+
                                 }
                             }
                         })
@@ -319,6 +255,17 @@ class Location : Fragment() {
         }
         Log.d(TAG, "isLocationServiceRunning: location service is not running.")
         return false
+    }
+
+    private fun getCustomMarkerFromBitmap(vectorId: Int): BitmapDescriptor {
+        val vectorDrawable = ContextCompat.getDrawable(context!!, vectorId)
+        vectorDrawable!!.setBounds(0, 0 , vectorDrawable!!.intrinsicWidth, vectorDrawable.intrinsicWidth)
+        val bitmap = Bitmap.createBitmap(vectorDrawable.intrinsicWidth, vectorDrawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        vectorDrawable.draw(canvas)
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
+
+
     }
 
 

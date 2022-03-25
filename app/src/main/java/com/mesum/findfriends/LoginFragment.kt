@@ -40,12 +40,10 @@ class LoginFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.emailSignInButton.setOnClickListener {
-            //loginUser(binding.email.text.toString(), binding.password.text.toString())
             signIn(binding.email.text.toString(), binding.password.text.toString())
         }
         binding.linkRegister.setOnClickListener {
-            //findNavController().navigate(R.id.closeButton)
-        //    findNavController().navigate(R.id.reg)
+          findNavController().navigate(R.id.registerFragment)
         }
     }
 
